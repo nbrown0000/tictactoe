@@ -11,6 +11,8 @@ class Game extends React.Component {
     this.state = {
       gameOver: false,
       grid: ['','','','','','','','',''],
+      playerSymbol: 'X',
+      computerSymbol: 'O',
       turn: 'player'
     }
   }
@@ -32,20 +34,78 @@ class Game extends React.Component {
 
   possibleMoves() {
     var moves = [];
-    this.state.grid.forEach((item,i) => {if(item==='') moves.push(i)})
+    this.state.grid.forEach((item,i) => {if(item==='') moves.push(i+1)})
     return moves;
+  }
+
+  cornerMovesAvailable() {
+    // if cell 1,3,7,9 available return true
+    if(this.possibleMoves().some(r => [1,3,7,9].includes(r))) return true
+    // else return false
+    else return false
+  }
+
+  intersection(arr1, arr2) {
+    var result = [];
+    arr1.forEach(item => {
+      if(arr2.includes(item)) result.push(item)
+    })
+    return result;
+  }
+
+  positionsTaken(symbol) {
+    var result = [];
+    this.state.grid.forEach((item,i) => {
+      if(item===symbol) result.push(i+1)
+    })
+    return result;
+  }
+
+  columnToDefend() {
+    if(this.intersection(this.positionsTaken(this.state.playerSymbol),[1,4,7]).length===2) return 1
+    if(this.intersection(this.positionsTaken(this.state.playerSymbol),[2,5,8]).length===2) return 2
+    if(this.intersection(this.positionsTaken(this.state.playerSymbol),[3,6,9]).length===2) return 3
   }
 
   //computers turn algorithm
   computersMove = () => {
-    sleep(500).then(()=>{
-      // play random move
-      const moves = this.possibleMoves();
-      const randomMoveLocation = moves[Math.floor(Math.random()*moves.length)]
-      this.setState({grid: this.state.grid.map((item,i) => {
-        if(randomMoveLocation===i) item='O';
-        return item;
-      })})
+    const { playerSymbol, computerSymbol, grid } = this.state
+
+    sleep(300).then(()=>{
+      // // play random move
+      // const moves = this.possibleMoves();
+      // const randomMoveLocation = moves[Math.floor(Math.random()*moves.length)]
+      // this.setState({grid: this.state.grid.map((item,i) => {
+      //   if(randomMoveLocation===i) item='O';
+      //   return item;
+      // })})
+
+      if(this.possibleMoves().length===8) {
+        const availGoodMoves = this.intersection(this.possibleMoves(),[1,3,7,9]);
+        const chosenGoodMove = availGoodMoves[Math.floor(Math.random()*availGoodMoves.length)]
+        this.setState({grid: grid.map((item,i) => {
+          if(chosenGoodMove===i+1) item=computerSymbol;
+          return item;
+        })})
+      }
+
+      switch(this.columnToDefend()) {
+        case 1:
+          console.log('column 1');
+          // play move with spot
+          break;
+        case 2:
+          console.log('column 2');
+          // play move with spot
+          break;
+        case 3:
+          console.log('column 3');
+          // play move with spot
+          break;
+        default: break;
+
+      }
+
     })
 
     console.log('computer played a move');
