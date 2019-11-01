@@ -6,11 +6,36 @@ class Game extends React.Component {
     super(props)
     this.state = {
       gameOver: false,
+      winner: '',
       grid: ['','','','','','','','',''],
       playerSymbol: 'X',
       computerSymbol: 'O',
       turn: 'player'
     }
+  }
+
+  checkGameOver() {
+    if(!this.state.grid.includes('')) this.setState({gameOver: true, winner: 'DRAW!'})
+
+    const { playerSymbol, computerSymbol } = this.state;
+    const combinations = [
+      [0,3,6], [1,4,7], [2,5,8],  // cols
+      [0,1,2], [3,4,5], [6,7,8],  // rows
+      [0,4,8], [2,4,6]  // left and right diagonals
+    ]
+    combinations.forEach(item => {
+      if(this.intersection(this.positionsTakenBy(computerSymbol),item).length===3) this.setState({gameOver: true, winner: 'COMPUTER'})
+      else if(this.intersection(this.positionsTakenBy(playerSymbol),item).length===3) this.setState({gameOver: true, winner: 'PLAYER'})
+    })
+  }
+
+  newGame() {
+    this.setState({
+      gameOver: false,
+      grid: ['','','','','','','','',''],
+      turn: 'player',
+      winner: ''
+    })
   }
   
   sleep(time) {
@@ -22,6 +47,8 @@ class Game extends React.Component {
   }
 
   cellClicked(event) {
+    if(this.state.gameOver===true) return
+
     this.setState({grid: this.state.grid.map((item,i) => {
       if(event===i) {
         if(this.state.grid[i]==='') { item='X'; this.setState({turn: 'computer'})}
@@ -30,6 +57,10 @@ class Game extends React.Component {
       }
       return item;
     })})
+
+    this.sleep(300).then(() => {
+      this.checkGameOver();
+    })
   }
 
   possibleMoves() {
@@ -122,18 +153,30 @@ class Game extends React.Component {
     else return false
   }
 
+  aggressiveMove() {
+    // if can complete row, col, or diag
+    const { playerSymbol, computerSymbol, grid } = this.state;
+    const combinations = [
+      [0,3,6], [1,4,7], [2,5,8],  // cols
+      [0,1,2], [3,4,5], [6,7,8],  // rows
+      [0,4,8], [2,4,6]  // left and right diagonals
+    ]
+    combinations.forEach(item => {
+      if(this.intersection(this.positionsTakenBy(computerSymbol),item).length===2) {
+        if(this.intersection(this.positionsTakenBy(playerSymbol),item).length===0) {
+          if(grid[item[0]]==='') this.playMove(item[0],computerSymbol)
+          if(grid[item[1]]==='') this.playMove(item[1],computerSymbol)
+          if(grid[item[2]]==='') this.playMove(item[2],computerSymbol)
+        }
+      }
+    })
+  }
+
   playMove(position, symbol) {
     this.setState({grid: this.state.grid.map((item,i) => {
       if(i===position) item=symbol;
       return item
     })})
-
-    const { grid, playerSymbol, computerSymbol } = this.state;
-    if(grid[0]===playerSymbol && grid[4]===playerSymbol && grid[8]===playerSymbol) {
-      this.setState({gameOver: true})
-    }
-
-    
   }
 
   //computers turn algorithm
@@ -152,7 +195,7 @@ class Game extends React.Component {
 
       // defend columns
       else if(this.columnToDefend()) {
-        console.log('Defend a column')
+        // console.log('Defend a column')
         switch(this.columnToDefend()) {
           case 1:
             // defend column 1
@@ -208,7 +251,7 @@ class Game extends React.Component {
       }
 
       else if(this.leftDiagToDefend()) {
-        console.log("Defend left diagonal!")
+        // console.log("Defend left diagonal!")
         if(grid[0]==='') this.playMove(0,computerSymbol)
         else if(grid[4]==='') this.playMove(4,computerSymbol)
         else if(grid[8]==='') this.playMove(8,computerSymbol)
@@ -216,7 +259,7 @@ class Game extends React.Component {
       }
 
       else if(this.rightDiagToDefend()) {
-        console.log("Defend right diagonal!")
+        // console.log("Defend right diagonal!")
         if(grid[2]==='') this.playMove(2,computerSymbol)
         else if(grid[4]==='') this.playMove(4,computerSymbol)
         else if(grid[6]==='') this.playMove(6,computerSymbol)
@@ -225,6 +268,10 @@ class Game extends React.Component {
       
       // random move
       else {
+        // if can complete row, col, or diag
+        this.aggressiveMove();
+
+        // otherwise random move
         const moves = this.possibleMoves()
         const chosenMove = moves[Math.floor(Math.random()*moves.length)]
         this.playMove(chosenMove, computerSymbol)
@@ -266,10 +313,20 @@ class Game extends React.Component {
           })}
         </div>
 
+        {
+          this.state.gameOver
+          ?
+          <div>
+            <h3>GAME OVER!</h3>
+            <h4>Winner: {this.state.winner}</h4>
+            <button onClick={() => this.newGame()}>PLAY AGAIN</button>
+          </div>
+          :
+          <h3>{this.state.turn}'s turn...</h3>
+        }
+
         <div className='footer'>
           <p>Designed and built by Nathan Brown</p>
-          <p>{this.state.turn}'s turn...</p>
-          {this.state.gameOver ? <p>GAME OVER!</p>: <p></p> }
         </div>
       </div>
     );
